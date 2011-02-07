@@ -1,9 +1,9 @@
 """A simple command line SRT convertor tool. Apply shift and factor to SRT timings.
 @author Gerard van Helden <drm@melp.nl>"""
 
-import re;
-import sys;
-import argparse;
+import re
+import sys
+import argparse
 
 class Time:
     HOURS = 3600000
@@ -35,7 +35,7 @@ class Time:
             else:
                 msecs = mapping['s'] * float(offs.group(1))
             if time[0] == '-':
-                msecs = -msecs;
+                msecs = -msecs
         else:
             t = map(int, cls.RE_TIME.match(time).group(1, 2, 3, 4))
             msecs = 0
@@ -49,7 +49,7 @@ class Time:
         self._ms = -1
         
     def __str__(self):
-        return ":".join(map(lambda d: "%02d" % d, self._asdict().values()[0:3])) + ',%03d' % self.msecs();
+        return ":".join(map(lambda d: "%02d" % d, self._asdict().values()[0:3])) + ',%03d' % self.msecs()
     
     def __int__(self):
         return self.ms
@@ -81,7 +81,7 @@ class Time:
         if self.ms != self._ms:
             self._ms = self.ms
             self._d = {}
-            rest = self.ms;
+            rest = self.ms
             for i in Time.PARTS_V:
                 self._d[i] = int(rest / i)
                 rest %= i
@@ -113,7 +113,7 @@ class Entry:
 
     @classmethod
     def group_lines(cls, lines):
-        count = 0;
+        count = 0
         group = []
         for line in lines:
             m = cls.RE_NUMBER.match(line)
@@ -137,7 +137,7 @@ class Entry:
             str(self.index), 
             str(self.span), 
             str(self.data)
-        ]) + "\r\n";
+        ]) + "\r\n"
         
     def __add__(self, ms):
         return Entry(self.index, self.span + ms, self.data)
@@ -162,7 +162,7 @@ class EntryList:
         self.entries[entry.index]=entry
 
     def __iter__(self):
-        return iter(self.entries);
+        return iter(self.entries)
         
     def __getitem__(self, index):
         return self.entries[index]
@@ -184,7 +184,7 @@ class EntryList:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Fix an SRT file's timings");
+    parser = argparse.ArgumentParser(description="Fix an SRT file's timings")
     parser.add_argument(
         '-i',
         dest='input',
