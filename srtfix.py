@@ -38,8 +38,9 @@ class Time:
                 msecs = -msecs;
         else:
             t = map(int, cls.RE_TIME.match(time).group(1, 2, 3, 4))
-            msecs = cls.HOURS * t[0] + cls.MINS * t[1] + cls.SECS * t[2] + cls.MSECS * t[3]
-
+            msecs = 0
+            for i, v in enumerate(cls.PARTS_V):
+                msecs += v * t[i]
         return Time(msecs)
             
         
@@ -48,7 +49,7 @@ class Time:
         self._ms = -1
         
     def __str__(self):
-        return ":".join(map(lambda d: "%02d" % d, (self.hours(), self.mins(), self.secs()))) + ',%03d' % self.msecs();
+        return ":".join(map(lambda d: "%02d" % d, self._asdict().values()[0:3])) + ',%03d' % self.msecs();
     
     def __int__(self):
         return self.ms
