@@ -18,10 +18,9 @@ class Time:
         'ms': MSECS
     }
     PARTS_V = PARTS.values()
-    list.sort(PARTS_V)
-    list.reverse(PARTS_V)
+    PARTS_V.sort()
+    PARTS_V.reverse()
 
-    
     RE_TIME = re.compile(r'(\d{1,2}):(\d{1,2}):(\d{1,2}),(\d+)')
     RE_OFFSET = re.compile(r'^-?(\d+)([hms]|ms)?$')
     
