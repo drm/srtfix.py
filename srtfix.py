@@ -11,12 +11,16 @@ class Time:
     SECS  = 1000
     MSECS = 1
     
-    SHORTHAND_MAPPINGS = {
+    PARTS = {
         'h': HOURS,
         'm': MINS,
         's': SECS,
         'ms': MSECS
     }
+    PARTS_V = PARTS.values()
+    list.sort(PARTS_V)
+    list.reverse(PARTS_V)
+
     
     RE_TIME = re.compile(r'(\d{1,2}):(\d{1,2}):(\d{1,2}),(\d+)')
     RE_OFFSET = re.compile(r'^-?(\d+)([hms]|ms)?$')
@@ -25,18 +29,19 @@ class Time:
     def parse(cls, time):
         offs = cls.RE_OFFSET.match(time)
         if(offs):
-            mapping = cls.SHORTHAND_MAPPINGS;
+            mapping = cls.PARTS
             if offs.group(2) in mapping:
                 msecs = mapping[offs.group(2)] * float(offs.group(1))
             else:
                 msecs = mapping['s'] * float(offs.group(1))
             if time[0] == '-':
                 msecs = -msecs;
-
-            return Time(msecs)
         else:
             t = map(int, cls.RE_TIME.match(time).group(1, 2, 3, 4))
-            return Time(cls.HOURS * t[0] + cls.MINS * t[1] + cls.SECS * t[2] + cls.MSECS * t[3])
+            msecs = cls.HOURS * t[0] + cls.MINS * t[1] + cls.SECS * t[2] + cls.MSECS * t[3]
+
+        return Time(msecs)
+            
         
     def __init__(self, ms):
         self.ms = int(ms)
@@ -47,29 +52,18 @@ class Time:
     
     def __int__(self):
         return self.ms
-            
+           
     def hours(self):
-        return self.asdict()[Time.HOURS]
+        return self._asdict()[Time.HOURS]
         
     def mins(self):
-        return self.asdict()[Time.MINS]
+        return self._asdict()[Time.MINS]
         
     def secs(self):
-        return self.asdict()[Time.SECS]
+        return self._asdict()[Time.SECS]
         
     def msecs(self):
-        return self.asdict()[Time.MSECS]
-        
-    def asdict(self):
-        if self.ms != self._ms:
-            self._ms = self.ms
-            self._d = {}
-            p = [Time.HOURS, Time.MINS, Time.SECS, Time.MSECS]
-            rest = self.ms;
-            for i in p:
-                self._d[i] = int(rest / i)
-                rest %= i
-        return self._d
+        return self._asdict()[Time.MSECS]
         
     def __add__(self, ms):
         if isinstance(ms, str):
@@ -81,6 +75,16 @@ class Time:
         
     def __mul__(self, factor):
         return Time(self.ms * factor)
+
+    def _asdict(self):
+        if self.ms != self._ms:
+            self._ms = self.ms
+            self._d = {}
+            rest = self.ms;
+            for i in Time.PARTS_V:
+                self._d[i] = int(rest / i)
+                rest %= i
+        return self._d
 
 class Span:
     SEP = " --> "
@@ -176,7 +180,6 @@ class File:
         return ret
         
     def __str__(self):
-        ret = ''
         return "".join(map(str, self.entries.values()))
 
 
