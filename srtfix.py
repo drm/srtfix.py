@@ -151,13 +151,13 @@ class EntryList:
     def parse(cls, lines):
         ret = cls()
         for i, entry in Entry.group_lines(map(str.strip, lines)):
-            ret.add(Entry(i, Span.parse(entry[0]), "\r\n".join(entry[1:])))
+            ret.append(Entry(i, Span.parse(entry[0]), "\r\n".join(entry[1:])))
         return ret
                 
     def __init__(self):
         self.entries = {}
         
-    def add(self, entry):
+    def append(self, entry):
         self.entries[entry.index]=entry
 
     def __iter__(self):
@@ -169,13 +169,13 @@ class EntryList:
     def __add__(self, time):
         ret = EntryList()
         for i in self.entries:
-            ret.add(self.entries[i] + time)
+            ret.append(self.entries[i] + time)
         return ret
         
     def __mul__(self, factor):
         ret = EntryList()
         for i in self.entries:
-            ret.add(self.entries[i] * factor)
+            ret.append(self.entries[i] * factor)
         return ret
         
     def __str__(self):
@@ -221,11 +221,11 @@ def main():
 
     o = parser.parse_args()
     
-    if o.input == '-':
+    if o.input[0] == '-':
         ifile = sys.stdin
     else:
         ifile = open(o.input[0], 'r')
-    if o.output == '-':
+    if o.output[0] == '-':
         ofile = sys.stdout
     else:
         ofile = open(o.output[0], 'w')
