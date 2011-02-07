@@ -150,3 +150,4 @@ class SpanTest(unittest.TestCase):
         s = Span.parse(span_format)
         self.assertEquals(formatted, str(s)) 
 
+

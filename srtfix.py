@@ -108,6 +108,24 @@ class Span:
 
 
 class Entry:
+    RE_NUMBER = re.compile(r'^\d+$')
+
+    @classmethod
+    def group_lines(cls, lines):
+        count = 0;
+        group = []
+        for line in lines:
+            m = cls.RE_NUMBER.match(line)
+            if m:
+                if len(group) > 0:
+                    yield (index, group)
+                    group = []
+                index = int(m.group(0))
+            else:
+                group.append(line)
+        if len(group):
+            yield (index, group)
+
     def __init__(self, index, span, data):
         self.index = index
         self.span = span
@@ -125,36 +143,17 @@ class Entry:
         
     def __mul__(self, factor):
         return Entry(self.index, self.span * factor, self.data)
+
     
     
-class File:
+class EntryList:
     @classmethod
-    def parse(cls, file):
-        def stripped_lines(file):
-            for i in iter(file):
-                yield i.strip()
-        
-        parsed = cls()
-        lines = stripped_lines(file)
-        i = 0
-        index = lines.next()
-        try:
-            while True:
-                i += 1
-                line = lines.next()
-                span = Span.parse(line)
+    def parse(cls, lines):
+        ret = cls()
+        for i, entry in Entry.group_lines(map(str.strip, lines)):
+            ret.add(Entry(i, Span.parse(entry[0]), "\r\n".join(entry[1:])))
+        return ret
                 
-                data = lines.next()
-                while True:
-                    line = lines.next()
-                    if line == str(i +1):
-                        break
-                    data += '\r\n' + line
-                parsed.add(Entry(i, span, data))
-        except StopIteration:
-            parsed.add(Entry(i, span, data))
-        return parsed
-        
     def __init__(self):
         self.entries = {}
         
@@ -168,13 +167,13 @@ class File:
         return self.entries[index]
         
     def __add__(self, time):
-        ret = File()
+        ret = EntryList()
         for i in self.entries:
             ret.add(self.entries[i] + time)
         return ret
         
     def __mul__(self, factor):
-        ret = File()
+        ret = EntryList()
         for i in self.entries:
             ret.add(self.entries[i] * factor)
         return ret
@@ -231,7 +230,7 @@ def main():
     else:
         ofile = open(o.output[0], 'w')
         
-    data = File.parse(ifile)
+    data = EntryList.parse(iter(ifile))
     if o.shift:
         data += o.shift[0]
     if o.convert_framerate:
