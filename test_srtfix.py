@@ -6,6 +6,7 @@ import random
 
 __author__ = "Gerard van Helden <drm@melp.n>"
 
+
 def data_provider(data):
     """Data provider decorator, allows a callable to provide the data for the test"""
     if callable(data):
@@ -20,20 +21,17 @@ def data_provider(data):
                 try:
                     fn(self, *(i + args))
                 except AssertionError as e:
-                    e.message += " (data set used: %s)" % i
-                    raise e
+                    raise AssertionError(e.message + " (data set used: %s)" % repr(i))
         return test_decorated
     return test_decorator
-
 
 def expect_exception(exception):
     """Marks test to expect the specified exception. Call assertRaises internally"""
     def test_decorator(fn):
-        def decorated(self, *args, **kwargs):
+        def test_decorated(self, *args, **kwargs):
             self.assertRaises(exception, fn, self, *args, **kwargs)
-        return decorated
+        return test_decorated
     return test_decorator
-
 
 class TimeTest(unittest.TestCase):
     srt_format_data = (
