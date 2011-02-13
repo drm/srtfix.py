@@ -1,42 +1,75 @@
-"""A simple command line SRT convertor tool. Apply shift and factor to SRT timings.
-@author Gerard van Helden <drm@melp.nl>"""
+"""A simple command line SRT convertor tool. Apply shift and factor to SRT timings."""
+__author__ = "Gerard van Helden <drm@melp.n>"
 
 import re
 import sys
 import argparse
 
+class TimeParseError:
+    'Thrown whenever a parse error occurs in Time.parse'
+    def __init__(self, msg, time):
+        self._msg = msg
+        self._time = time
+
+    def __str__(self):
+        return "%s (%s)" % (self._msg, self._time)
+    
 class Time:
-    HOURS = 3600000
-    MINS  = 60000
-    SECS  = 1000
-    MSECS = 1
+    '''A Time abstraction class, mapping time values to milliseconds internally and representing it
+    as strings. The class implements adding, substracting, multiplication and division through
+    arithmetic operators'''
+
+    _HOURS = 3600000
+    _MINS  = 60000
+    _SECS  = 1000
+    _MSECS = 1
     
     PARTS = {
-        'h': HOURS,
-        'm': MINS,
-        's': SECS,
-        'ms': MSECS
+        'h': _HOURS,
+        'm': _MINS,
+        's': _SECS,
+        'ms': _MSECS
     }
     PARTS_V = PARTS.values()
-    PARTS_V.sort()
-    PARTS_V.reverse()
+    PARTS_V.sort(reverse=True)
 
     RE_TIME = re.compile(r'(\d{1,2}):(\d{1,2}):(\d{1,2}),(\d+)')
-    RE_OFFSET = re.compile(r'^-?(\d+)([hms]|ms)?$')
+    RE_OFFSET = re.compile(r'^-?(\d+)(ms|[hms])-?')
     
     @classmethod
     def parse(cls, time):
+        """Parses a string representation of time and returns a Time instance. Valid formats are:
+        - 01:02:03,004
+          1 hour, 2 minutes, 3 seconds and 4 milliseconds
+        - 1h2m3s4ms
+          Same value
+        Any combination of 'h', 'm', 's', or 'ms' suffixed values. Values prefixed or suffixed by a dash are
+        considered negative values."""
+
+        time = str(time)
         offs = cls.RE_OFFSET.match(time)
-        if(offs):
+        if offs:
             mapping = cls.PARTS
-            if offs.group(2) in mapping:
-                msecs = mapping[offs.group(2)] * float(offs.group(1))
-            else:
-                msecs = mapping['s'] * float(offs.group(1))
-            if time[0] == '-':
+            negative = time[0] == "-" or time[-1] == "-"
+            msecs = 0
+            while offs:
+                if offs.group(2) in mapping:
+                    msecs += mapping[offs.group(2)] * float(offs.group(1))
+                else:
+                    msecs += mapping['s'] * float(offs.group(1))
+                time = time[len(offs.group(0)):]
+                if len(time):
+                    offs = cls.RE_OFFSET.match(time)
+                else:
+                    offs = False
+
+            if negative:
                 msecs = -msecs
         else:
-            t = map(int, cls.RE_TIME.match(time).group(1, 2, 3, 4))
+            try:
+                t = map(int, cls.RE_TIME.match(time).group(1, 2, 3, 4))
+            except AttributeError:
+                raise TimeParseError("Invalid format, could not parse", time)
             msecs = 0
             for i, v in enumerate(cls.PARTS_V):
                 msecs += v * t[i]
@@ -45,26 +78,19 @@ class Time:
         
     def __init__(self, ms):
         self.ms = int(ms)
-        self._ms = -1
+        self._ms = None
         
     def __str__(self):
-        return ":".join(map(lambda d: "%02d" % d, self._asdict().values()[0:3])) + ',%03d' % self.msecs()
-    
+        ret = ""
+        if self.ms < 0:
+            ret += "-"
+        ret += ":".join(map(lambda d: "%02d" % abs(d), self._asdict().values()[0:3]))
+        ret += ',%03d' % abs(self._asdict()[self._MSECS])
+        return ret
+
     def __int__(self):
         return self.ms
            
-    def hours(self):
-        return self._asdict()[Time.HOURS]
-        
-    def mins(self):
-        return self._asdict()[Time.MINS]
-        
-    def secs(self):
-        return self._asdict()[Time.SECS]
-        
-    def msecs(self):
-        return self._asdict()[Time.MSECS]
-        
     def __add__(self, ms):
         if isinstance(ms, str):
             ms = Time.parse(ms)
@@ -77,12 +103,14 @@ class Time:
         return Time(self.ms * factor)
 
     def _asdict(self):
-        if self.ms != self._ms:
+        if None == self.ms or self.ms != self._ms:
             self._ms = self.ms
             self._d = {}
-            rest = self.ms
+            rest = abs(self.ms)
             for i in Time.PARTS_V:
                 self._d[i] = int(rest / i)
+                if self._ms < 0:
+                    self._d[i] *= -1
                 rest %= i
         return self._d
 
@@ -112,8 +140,8 @@ class Entry:
 
     @classmethod
     def group_lines(cls, lines):
-        count = 0
         group = []
+        index = 0
         for line in lines:
             m = cls.RE_NUMBER.match(line)
             if m:
@@ -208,7 +236,7 @@ def main():
         type=str,
         nargs=1,
         default=0,
-        help="Shift the subtitles by number of hours, minutes, seconds or milliseconds"
+        help="Shift the subtitles by number of hours, minutes, seconds or milliseconds. The format is either hh:mm:ss,ms or 01h02m03s04ms, whereas the latter can be provided in any combination. A minus can be appended to do a negative shift"
     )
     parser.add_argument(
         '-f',
@@ -220,7 +248,7 @@ def main():
     )
 
     o = parser.parse_args()
-    
+
     if o.input[0] == '-':
         ifile = sys.stdin
     else:
