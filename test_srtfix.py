@@ -6,12 +6,11 @@ import random
 
 __author__ = "Gerard van Helden <drm@melp.n>"
 
-def data_provider(fn_data_provider):
-    """Data provider decorator, allows another callable to provide the data for the test"""
-    if not callable(fn_data_provider):
-        raise Exception("Need callable!")
+def data_provider(data):
+    """Data provider decorator, allows a callable to provide the data for the test"""
+    if callable(data):
+        data = data()
 
-    data = fn_data_provider()
     if not all(isinstance(i, tuple) for i in data):
         raise Exception("Need a tuple of tuples as data...")
     
@@ -35,7 +34,7 @@ def expect_exception(exception):
 
 
 class TimeTest(unittest.TestCase):
-    srt_format_data = lambda: (
+    srt_format_data = (
         (0, '0:0:0,0'),
         (1, '0:0:0,1'),
         (1000, '0:0:1,0'),
@@ -55,12 +54,12 @@ class TimeTest(unittest.TestCase):
     def test_parse_srt_format(self, expected, srt_format):
         self.assertEquals(expected, Time.parse(srt_format).ms)
 
-    @data_provider(lambda: (("",), ("unparsable",), ( "--0",)))
+    @data_provider( (("",), ("unparsable",), ( "--0",),) )
     @expect_exception(TimeParseError)
     def test_parse_invalid_format(self, format):
         Time.parse(format)
 
-    shorthand_format_data = lambda: (
+    shorthand_format_data = (
         (1, '1ms'),
         (1000, '1s'),
         (60000, '1m'),
@@ -102,7 +101,7 @@ class TimeTest(unittest.TestCase):
     def test_parse_shorthand_format(self, expected, shorthand_format):
         self.assertEquals(expected, Time.parse(shorthand_format).ms)
 
-    str_data = lambda: (
+    str_data = (
         (0, '00:00:00,000'),
         (1, '00:00:00,001'),
         (1000, '00:00:01,000'),
@@ -156,7 +155,7 @@ class TimeTest(unittest.TestCase):
         t = Time(r)
         self.assertEquals(int(t), r)
 
-    add_data = lambda: (
+    add_data = (
         (3000, Time(1000), Time(2000)),
         (3000, Time(1000), '2s'),
         (-1000, Time(1000), '-2s'),
@@ -170,7 +169,7 @@ class TimeTest(unittest.TestCase):
     def test_add(self, expect, t1, t2):
         self.assertEquals(expect, int(t1 + t2))
 
-    mul_data = lambda: (
+    mul_data = (
         (3000, Time(1000), 3),
     )
 
@@ -179,12 +178,10 @@ class TimeTest(unittest.TestCase):
         self.assertEquals(expect, int(t1 * t2))
 
 
-
-
 class SpanTest(unittest.TestCase):
-    span_format_data = lambda: (
-    ( [1, 2], '0:0:0,1 --> 0:0:0,2' ),
-    ( [35999990, 35999999], '9:59:59,990 --> 9:59:59,999' ),
+    span_format_data = (
+        ( [1, 2], '0:0:0,1 --> 0:0:0,2' ),
+        ( [35999990, 35999999], '9:59:59,990 --> 9:59:59,999' ),
     )
 
     @data_provider(span_format_data)
@@ -202,11 +199,10 @@ class SpanTest(unittest.TestCase):
         s = Span.parse(span_format) * 4
         self.assertEquals(map(lambda t: t * 4, times), map(int, (s.stime, s.etime)))
 
-    str_data = lambda: (
-    ( '00:00:00,001 --> 00:00:00,002', '0:0:0,1 --> 0:0:0,2' ),
-    ( '09:59:59,990 --> 09:59:59,999', '9:59:59,990 --> 9:59:59,999' ),
+    str_data = (
+        ( '00:00:00,001 --> 00:00:00,002', '0:0:0,1 --> 0:0:0,2' ),
+        ( '09:59:59,990 --> 09:59:59,999', '9:59:59,990 --> 9:59:59,999' ),
     )
-
     @data_provider(str_data)
     def test_mul(self, formatted, span_format):
         s = Span.parse(span_format)
