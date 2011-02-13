@@ -12,15 +12,17 @@ def data_provider(data):
         data = data()
 
     if not all(isinstance(i, tuple) for i in data):
-        raise Exception("Need a tuple of tuples as data...")
-    
+        raise Exception("Need a sequence of tuples as data...")
+
     def test_decorator(fn):
-        def decorated(self, *args):
+        def test_decorated(self, *args):
             for i in data:
-                fn(self, *(i + args))
-
-        return decorated
-
+                try:
+                    fn(self, *(i + args))
+                except AssertionError as e:
+                    e.message += " (data set used: %s)" % i
+                    raise e
+        return test_decorated
     return test_decorator
 
 
